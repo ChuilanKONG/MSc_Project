@@ -1,0 +1,31 @@
+﻿Group,Category,Mean,Error
+Bushy Park 2022,Trap Rate,0.03,0.01
+Bushy Park 2022,Travel Speed,0.17,0.03
+Bushy Park 2022,Activity Levels,0.47,0.05
+Bushy Park 2022,Angular Distance,0.74,0.04
+Bushy Park 2022,Radial Distance,4.42,0.29
+Bushy Park 2022,Density,2.09,0.59
+,,,
+,,,
+,,,
+,,,
+,,,
+,,,
+,,,
+,,,
+,,,
+,,,
+,,,
+,,,
+Regent's Park 2018,Trap Rate,0.15,
+Regent's Park 2018,Travel Speed,0.15,0.02
+Regent's Park 2018,Activity Levels,0.56,0.05
+Regent's Park 2018,Angular Distance,0.7,0.09
+Regent's Park 2018,Radial Distance,3.57,0.5
+Regent's Park 2018,Density,13.45,4.92
+Hampstead Heath 2018,Trap Rate,0.21,0.15
+Hampstead Heath 2018,Travel Speed,0.14,0.01
+Hampstead Heath 2018,Activity Levels,0.55,0.04
+Hampstead Heath 2018,Angular Distance,0.72,0.08
+Hampstead Heath 2018,Radial Distance,2.99,0.13
+Hampstead Heath 2018,Density,21.6,4.85
