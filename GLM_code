@@ -1,0 +1,164 @@
+# extract data from json files
+
+install.packages("rjson")
+library(rjson)
+
+count_MD_detections <- function(dat, thr=dat$info$detector_metadata$typical_detection_threshold){
+
+  count <- function(img, thr){
+    conf <- unlist(lapply(img$detections, function(x) x$conf))
+    cat <- unlist(lapply(img$detections, function(x) x$category))
+    unlist(lapply(names(cats), function(ct) sum(cat==ct & conf>thr)))
+  }
+  
+  cats <- unlist(dat$detection_categories)
+  imgnms <- unlist(lapply(dat$images, function(x) x$file))
+  res <- lapply(dat$images, count, thr=thr)
+  res <- as.data.frame(do.call(rbind, res))
+  res <- cbind(imgnms, res)
+  names(res) <- c("image", cats)
+  res
+}
+
+my_list <- data.frame(
+  image = numeric(),  
+  animal = numeric(),   
+  person = numeric(),   
+  vehicle = numeric()   
+)
+
+folder_path <- "C:/Users/Kong/Desktop/json"
+
+# 
+file_names <- list.files(path = folder_path, pattern = "*.json", full.names = TRUE)
+
+
+for (file_name in file_names) {
+  # 
+  json_data <- fromJSON(file = file_name)
+  
+  # 
+  a <- count_MD_detections(json_data)
+  
+  # 
+  my_list <- rbind(my_list, list(image = length(a$image), animal = sum(a$animal), person = sum(a$person), vehicle = sum(a$vehicle)))
+  
+  result <- data.frame(
+    image = sum(my_list$image),  
+    animal = sum(my_list$animal),   
+    person = sum(my_list$person),   
+    vehicle = sum(my_list$vehicle)   
+  )
+  
+}
+result
+
+
+# build glm
+
+install.packages("mgcv")
+library(mgcv)
+library(ggplot2)
+library(gridExtra)
+require(ggeffects) 
+library(sjPlot)
+library(visreg)
+
+setwd("C:/Users/Kong/OneDrive - Imperial College London/Project/Survey_yyy")
+jsonall <- read.csv("jsonall.csv")
+
+jsonall$personrate<-jsonall$person/jsonall$effort.days
+jsonall$vehiclerate<-jsonall$vehicle/jsonall$effort.days
+jsonall$traprate<-jsonall$Hedgehog/jsonall$effort.days
+
+mean(jsonall$vehiclerate)
+par(mfrow=c(1,1))
+boxplot(jsonall$Hedgehog, main = "Number of individual contact at each camera station", ylab = "Number of individual contact", xlab = "Hedgehog")
+        
+        
+ggplot(jsonall, aes(x = Hedgehog)) +
+  geom_histogram(fill = "cyan3", color = "black", size = 0.5, binwidth = 1) +
+  labs(title = "Number of individual contact at each camera station",
+       x = "Hedgehog",
+       y = "Frequency") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14)) +  
+  scale_x_continuous(breaks = seq(min(jsonall$Hedgehog), max(jsonall$Hedgehog), by = 1)) +
+  scale_y_continuous(breaks = seq(0, 100, by = 20))
+
+
+
+
+
+plotperson<-ggplot(jsonall, aes(x = log(personrate))) +
+  geom_histogram(fill = "cyan3", color = "black", size = 0.5, binwidth = 1) +
+  labs(title = "Number of contacts with people per camera per day",
+       x = "log(Number of contacts with people per camera per day)",
+       y = "Frequency") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14)) +  
+  scale_x_continuous(breaks = seq(0,10, by = 1)) +
+  scale_y_continuous(breaks = seq(0, 100, by = 20))
+
+plotvehicle<-ggplot(jsonall, aes(x = log(vehiclerate+1))) +
+  geom_histogram(fill = "cyan3", color = "black", size = 0.5, binwidth = 1) +
+  labs(title = "Number of contacts with vehicles per camera per day",
+       x = "log(Number of contacts with vehicles per camera per day + 1)",
+       y = "Frequency") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14)) + 
+  scale_x_continuous(breaks = seq(0,9, by = 1)) +
+  scale_y_continuous(breaks = seq(0, 50, by = 10))
+grid.arrange(plotperson, plotvehicle, ncol = 2) 
+
+ggplot(data = jsonall, aes(x=factor(""), y = traprate)) +
+  geom_boxplot(width = 0.5, outlier.shape = NA) +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.7, col="cyan3") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14))+  
+  labs(title = "Trapping rate per camera site", x = "Hedgehog", y = "Trap rate")
+
+
+hist(log(jsonall$personrate))
+hist(log(jsonall$vehiclerate+1))
+
+plot(log(jsonall$personrate)~log(jsonall$vehiclerate+1), data = jsonall)
+plot(jsonall$effort.days)
+
+#ＡＩＣ
+
+m2 <- glm(Hedgehog ~ offset(log(effort.days)), data = jsonall, family = poisson)
+AIC(m2)
+
+m3 <- glm(Hedgehog ~ log(personrate) + offset(log(effort.days)), data = jsonall, family = poisson)
+AIC(m3)
+
+m4 <- glm(Hedgehog ~ log(vehiclerate+1) + offset(log(effort.days)), data = jsonall, family = poisson)
+AIC(m4)
+
+m1 <- glm(Hedgehog ~ log(personrate) + log(vehiclerate+1) + offset(log(effort.days)), data = jsonall, family = poisson)
+AIC(m1)
+par(mfrow=c(2,2))
+plot(m1)
+summary(m1)
+
+
+BIC(m2)
+
+plot_model(m1)
+
+install.packages("scatterplot3d")
+library(scatterplot3d)
+
+p1<-visreg(m1, 
+       "personrate", 
+       gg = TRUE) 
+
+
+p2<-visreg(m1, 
+       "vehiclerate", 
+       gg = TRUE, add=TRUE) 
+
+
+p1<-p1+labs(x = "Count of people", y = "Count of hedgehogs")
+
+p2<-p2+labs(x = "Count of vehicles", y = "Count of hedgehogs")
+
+combined_plot <- grid.arrange(p1, p2, ncol = 2)
+
