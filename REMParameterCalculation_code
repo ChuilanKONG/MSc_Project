@@ -1,0 +1,114 @@
+# calculation
+
+
+install.packages("boot")
+install.packages("mrds")
+install.packages("pbapply")
+install.packages("C:/Users/Kong/Downloads/activity_1.3.3.tar.gz", type = "source")
+install.packages("bootstrap")
+install.packages("bootTRD")
+devtools::source_url("MarcusRowcliffe/camtools")
+devtools::source_url("MarcusRowcliffe/distanceDF")
+library(mrds)
+library(boot)
+library(bootstrap)
+library(activity)
+library(devtools)
+
+
+setwd("C:/Users/Kong/OneDrive - Imperial College London/Project/Survey_yyy")
+trdat<-read.csv("Trap_rate.csv")
+
+
+
+# read data
+
+data <- read.csv("seqdat.csv")
+#data <- data[data$speed != Inf, ]
+data <- data[data$speed != 0, ]
+
+# load hmean function from sbd package
+
+hmean <- function(x){
+  mn <- 1/mean(1/x)
+  se <- mn^2 * sqrt(var(1/x)/length(x))
+  c(mean=mn, se=se)
+}
+
+
+# speed
+
+spdest<-hmean(data$speed)
+
+
+# activity levels
+
+data$total_seconds <- data$hour * 3600 + data$minute * 60 + data$second
+data$radtime <- (data$total_seconds / (24 * 3600)) * (2 * pi)
+
+fittime <- fitact(data$radtime, reps = 500, sample = "data")
+a<-fittime@pdf
+
+par(mfrow=c(1,1))
+plot(fittime)
+fittime@act
+
+fita <- fitact(data$radtime, reps = 500, sample = "data", bounds=c(pi*3/2, pi*2/3))
+a<-fita@pdf
+
+par(mfrow=c(1,1))
+plot(fita)
+fita@act
+
+
+# radius and angle
+data$absangle<-abs(data$angle)
+
+# 用 line 25 edd算平均和se
+
+m1 <- fitdf(radius~1, data, transect="point", key="hr")
+m2 <- fitdf(radius~1, data, transect="point")
+m3 <- fitdf(absangle~1, data, key="hr")
+m4 <- fitdf(absangle~1, data, transect="point")
+
+m1$edd
+m2$edd
+m3$edd
+m4$edd
+
+ggplot(data, aes(x = abs(angle), y = radius)) +
+  geom_point() +
+  theme(plot.title = element_text(hjust = 0.5, size = 14)) +  # 将标题居中并设置字体大小
+  labs(title = "The position of the hedgehogs when they first encountered the camera trap",
+       x = "Angular Distance (radians)",
+       y = "Radial Distance (m-1)")
+
+
+# calculate density
+
+bootTRD <- function(P, T, param, paramSE, strata=NULL, areas=NULL, its=1000){
+  if(!all(names(paramSE) %in% names(param))) stop("Mismatched param and paramSE names")
+  BSdens <- sapply(1:its, TRDsample, P, T, param, strata, areas)
+  BSse <- sd(BSdens)
+  Dens <- TRD(P,T,param,strata,areas)
+  prms <- length(param)
+  addn <- rep(0,prms)
+  addn[which(names(param)=="theta")] <- 2
+  Es <- c(Dens,addn+unlist(param))
+  SEs <- c(BSse,unlist(paramSE))
+  SE <- Dens * sqrt(sum((SEs/Es)^2))
+  cbind(Density=Dens, SE=SE)
+}
+
+
+# density estimation
+param <- list(v = spdest["mean"] * 14*60^2 / 1000,
+              p = fita@act["act"],
+              r = m1$edd$estimate / 1000,
+              theta = m3$edd$estimate * 2)
+paramse <- list(v = spdest["se"] * 14*60^2 / 1000,
+                p = fita@act["se"],
+                r = m1$edd$se / 1000,
+                theta = m3$edd$se * 2)
+bootTRD(trdat[, "Hedgehog"], trdat$effort.days, param, paramse)
+
