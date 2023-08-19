@@ -1,0 +1,69 @@
+# calibration
+
+
+#Using V0.2 (Laura Vargas Zarco version of Animaltracker)
+install.packages("tidyverse")
+library(tidyverse)
+devtools::source_url("https://raw.githubusercontent.com/MarcusRowcliffe/CTtracking/V0.3.2/CTtracking.r")
+install.exiftool()
+
+folder <- "C:/Users/Kong/OneDrive - Imperial College London/Project/Survey_yyy"
+
+#Camera calibration models
+#campth <- file.path(folder, "Cameras")
+#cam.exdat <- read.exif(campth)
+#View(cam.exdat)
+#camdat <- read.digidat(campth, cam.exdat)
+#View(camdat)
+#camdat <- pairup(camdat, pair=c("folder", "image_name"))
+#View(camdat)
+#cmods <- cal.cam(camdat, camtag="folder")
+#plot(cmods)
+
+
+cmods <- readRDS(file.path(folder, "Browning_camera_calibrations.rds"))
+names(cmods)
+par(mfrow=c(1,2))
+plot(cmods)
+
+
+
+deppth <- file.path(folder, "Deployments")
+
+
+##In subsequent sessions just run this:
+dep.exdat <- read.csv(file.path(folder, "exifdata.csv"), stringsAsFactors = FALSE)
+
+#newpth <- file.path(folder, "CopiedImages")
+#sub.exdat <- image.copy(newpth, exifdat=dep.exdat, criterion="!is.na(species)")
+#sub.exdat <- read.csv(file.path(folder, "exifdata.csv"), stringsAsFactors = FALSE)
+
+#Deployment calibration models
+
+depdat <- read.digidat(deppth, exifdat=dep.exdat)
+
+caldat <- pairup(subset(depdat, species=="calibration"), c("folder", "image_name"))
+
+
+#View(depdat)
+#View(caldat)
+
+(deptab <- read.csv(file.path(folder, "deptable.csv")))
+
+
+
+dmods <- cal.dep(caldat, cmods=cmods, deptag="deployment", lookup=deptab)
+plot(dmods) 
+
+
+animdat <- subset(depdat, species!="calibration")
+posdat <- predict.pos(animdat, dmods)
+View(animdat)
+View(posdat)
+hist(posdat$radius)
+hist(posdat$angle)
+
+seqdat <- seq.summary(posdat)   
+View(seqdat)
+setwd("C:/Users/Kong/OneDrive - Imperial College London/Project/Survey_yyy")
+write.csv(seqdat,file="seqdat.csv")
