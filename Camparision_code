@@ -1,0 +1,94 @@
+install.packages("patchwork")
+install.packages("hrbrthemes")
+install.packages("svglite")
+install.packages("ggpubr")
+library(patchwork) 
+library(hrbrthemes)
+library(ggpubr)
+library(ggplot2)
+library(svglite)
+
+setwd("C:/Users/Kong/OneDrive - Imperial College London/Project/Survey_yyy")
+df<-read.csv("barchart.csv")
+
+p1<-ggplot(data=df[df$Category == "Travel Speed",], aes(x = Category, y = Mean, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  geom_errorbar(aes(ymin = Mean - Error, ymax = Mean + Error), width = 0.25, position = position_dodge(0.7)) +
+  labs(x="",y = "Travel Speed (m/s)", title = "Travel Speed") +
+  theme(
+    axis.title.y = element_text(color = "gray30"),
+    axis.title.y.right = element_text(color = "orange3")
+  )
+
+p2<-ggplot(data=df[df$Category == "Activity Levels",], aes(x = Category, y = Mean, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  geom_errorbar(aes(ymin = Mean - Error, ymax = Mean + Error), width = 0.25, position = position_dodge(0.7)) +
+  labs(x="",y = "Activity Levels", title = "Activity Levels") +
+  theme(
+    axis.title.y = element_text(color = "gray30"),
+    axis.title.y.right = element_text(color = "orange3")
+  )
+
+p3<-ggplot(data=df[df$Category == "Angular Distance",], aes(x = Category, y = Mean, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  geom_errorbar(aes(ymin = Mean - Error, ymax = Mean + Error), width = 0.25, position = position_dodge(0.7)) +
+  labs(x="",y = "Angular Distance (radians)", title = "Angular Distance") +
+  theme(
+    axis.title.y = element_text(color = "gray30"),
+    axis.title.y.right = element_text(color = "orange3")
+  )
+
+p4<-ggplot(data=df[df$Category == "Radial Distance",], aes(x = Category, y = Mean, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  geom_errorbar(aes(ymin = Mean - Error, ymax = Mean + Error), width = 0.25, position = position_dodge(0.7)) +
+  labs(x="",y = "Radial Distance (m)", title = "Radial Distance") +
+  theme(
+    axis.title.y = element_text(color = "gray30"),
+    axis.title.y.right = element_text(color = "orange3")
+  )
+
+
+p5<-ggplot(data=df[df$Category == "Trap Rate",], aes(x = Category, y = Mean, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  geom_errorbar(aes(ymin = Mean - Error, ymax = Mean + Error), width = 0.25, position = position_dodge(0.7)) +
+  labs(x="",y = "Trap rate", title = "Trap rate") +
+  theme(
+    axis.title.y = element_text(color = "gray30"),
+    axis.title.y.right = element_text(color = "orange3")
+  )
+
+p6<-ggplot(data=df[df$Category == "Density",], aes(x = Category, y = Mean, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  geom_errorbar(aes(ymin = Mean - Error, ymax = Mean + Error), width = 0.25, position = position_dodge(0.7)) +
+  labs(x="",y = "Density", title = "Density") +
+  theme(
+    axis.title.y = element_text(color = "gray30"),
+    axis.title.y.right = element_text(color = "orange3")
+  )
+
+
+p<-ggarrange(p1, p2, p3, p4, p5, p6, ncol=2, nrow=3, common.legend = TRUE, legend="bottom")
+
+p
+ggsave("plot.svg", plot = p, device = "svg", width = 9, height = 6)
+
+
+# use Wald test to examine significance
+
+wald <- function(mn, se){
+  if(length(mn)!=length(se)) stop("mn and se are unequal lengths")
+  
+  exp.grid <- function(x){
+    n <- length(x)-1
+    cbind(x[sequence(1:n)], rep(x[-1], 1:n))
+  }
+  mns <- exp.grid(mn)
+  ses <- exp.grid(se)
+  Diff <- apply(mns, 1, diff)
+  vardiff <- apply(ses^2, 1, sum)
+  W <- Diff^2 / vardiff
+  p <- 1-pchisq(W,1)
+  res <- data.frame(mns, ses, Diff=abs(Diff), SEdiff=sqrt(vardiff), W, p)
+  names(res)[3:4] <- c("SE1","SE2")
+  res
+}
