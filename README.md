@@ -1,3 +1,3 @@
 # MSc_Project
 
-All the data and code I used for the study are included here. However, data here is not the original data but the data extracted from raw photos using the code in Calibration_code. There are 557,436 original photos, approximately 763 GB in total, which cannot be uploaded in their entirety.
+Raw images belong to the Institute of Zoology, Zoological Society of London, London Hogwatch project. These data are not open to the public. Available data and code are accessible here.
